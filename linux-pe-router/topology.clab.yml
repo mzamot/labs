@@ -1,0 +1,49 @@
+name: pe-on-host
+
+topology:
+  nodes:
+    spine:
+      kind: linux
+      image: quay.io/frrouting/frr:10.7.1
+      sysctls:
+        net.ipv6.conf.all.forwarding: 1
+      binds:
+        - configs/spine/frr.conf:/etc/frr/frr.conf
+        - configs/daemons-router:/etc/frr/daemons
+        - configs/vtysh.conf:/etc/frr/vtysh.conf
+
+    node1:
+      kind: generic_vm
+      image: localhost/vrnetlab/almalinux_almalinux:10
+      env:
+        QEMU_MEMORY: 2048
+        QEMU_SMP: 2
+    node2:
+      kind: generic_vm
+      image: localhost/vrnetlab/almalinux_almalinux:10
+      env:
+        QEMU_MEMORY: 2048
+        QEMU_SMP: 2
+    node3:
+      kind: generic_vm
+      image: localhost/vrnetlab/almalinux_almalinux:10
+      env:
+        QEMU_MEMORY: 2048
+        QEMU_SMP: 2
+    # A server cabled to the spine's spare port, to be turned into a PE later
+    node4:
+      kind: generic_vm
+      image: localhost/vrnetlab/almalinux_almalinux:10
+      env:
+        QEMU_MEMORY: 2048
+        QEMU_SMP: 2
+
+  links:
+    - endpoints: ["spine:eth1", "node1:eth1"]
+      mtu: 9000
+    - endpoints: ["spine:eth2", "node2:eth1"]
+      mtu: 9000
+    - endpoints: ["spine:eth3", "node3:eth1"]
+      mtu: 9000
+    - endpoints: ["spine:eth4", "node4:eth1"]
+      mtu: 9000

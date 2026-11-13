@@ -1,0 +1,78 @@
+name: l3vpn
+
+topology:
+  kinds:
+    linux:
+      image: localhost/l3vpn-node:latest
+
+  nodes:
+    p:
+      kind: linux
+      binds:
+        - configs/p.sh:/setup.sh
+      exec:
+        - sh /setup.sh
+
+    pe1:
+      kind: linux
+      image: quay.io/frrouting/frr:10.7.1
+      binds:
+        - configs/pe1/frr.conf:/etc/frr/frr.conf
+        - configs/daemons:/etc/frr/daemons
+        - configs/vtysh.conf:/etc/frr/vtysh.conf
+        - configs/pe.sh:/setup.sh
+      env:
+        LOOPBACK: fc00:0:1::1
+        UPLINK: 2001:db8:1::1
+        RED: 192.168.1.1
+        BLUE: 192.168.1.1
+      exec:
+        - sh /setup.sh
+
+    pe2:
+      kind: linux
+      image: quay.io/frrouting/frr:10.7.1
+      binds:
+        - configs/pe2/frr.conf:/etc/frr/frr.conf
+        - configs/daemons:/etc/frr/daemons
+        - configs/vtysh.conf:/etc/frr/vtysh.conf
+        - configs/pe.sh:/setup.sh
+      env:
+        LOOPBACK: fc00:0:2::1
+        UPLINK: 2001:db8:2::2
+        RED: 192.168.2.1
+        BLUE: 192.168.2.1
+      exec:
+        - sh /setup.sh
+
+    red-a:
+      kind: linux
+      exec:
+        - ip addr add 192.168.1.2/24 dev eth1
+        - ip route add default via 192.168.1.1
+
+    blue-a:
+      kind: linux
+      exec:
+        - ip addr add 192.168.1.2/24 dev eth1
+        - ip route add default via 192.168.1.1
+
+    red-b:
+      kind: linux
+      exec:
+        - ip addr add 192.168.2.2/24 dev eth1
+        - ip route add default via 192.168.2.1
+
+    blue-b:
+      kind: linux
+      exec:
+        - ip addr add 192.168.2.2/24 dev eth1
+        - ip route add default via 192.168.2.1
+
+  links:
+    - endpoints: ["pe1:eth1", "p:eth1"]
+    - endpoints: ["p:eth2", "pe2:eth1"]
+    - endpoints: ["pe1:eth2", "red-a:eth1"]
+    - endpoints: ["pe1:eth3", "blue-a:eth1"]
+    - endpoints: ["pe2:eth2", "red-b:eth1"]
+    - endpoints: ["pe2:eth3", "blue-b:eth1"]

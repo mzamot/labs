@@ -1,0 +1,18 @@
+frr defaults traditional
+hostname node@N@-l2-vxlan
+!
+! An EVPN client: its only peers are the two route reflectors, node1's and node2's VTEPs.
+router bgp 65001
+ bgp router-id 10.20.@N@.6
+ no bgp default ipv4-unicast
+ neighbor 10.20.1.6 remote-as 65001
+ neighbor 10.20.1.6 timers connect 5
+ neighbor 10.20.2.6 remote-as 65001
+ neighbor 10.20.2.6 timers connect 5
+ !
+ address-family l2vpn evpn
+  neighbor 10.20.1.6 activate
+  neighbor 10.20.2.6 activate
+  advertise-all-vni
+ exit-address-family
+exit

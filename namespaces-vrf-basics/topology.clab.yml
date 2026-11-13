@@ -1,0 +1,27 @@
+name: nsvrf
+
+topology:
+  kinds:
+    linux:
+      image: localhost/nsvrf-node:latest
+      sysctls:
+        net.ipv6.conf.all.disable_ipv6: 1
+        net.ipv6.conf.default.disable_ipv6: 1
+
+  nodes:
+    router:
+      kind: linux
+    red1:
+      kind: linux
+      exec:
+        - ip addr add 10.0.0.2/24 dev eth1
+        - ip route add default via 10.0.0.1
+    blue1:
+      kind: linux
+      exec:
+        - ip addr add 10.0.0.2/24 dev eth1
+        - ip route add default via 10.0.0.1
+
+  links:
+    - endpoints: ["router:eth1", "red1:eth1"]
+    - endpoints: ["router:eth2", "blue1:eth1"]

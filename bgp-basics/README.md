@@ -22,28 +22,22 @@ Blog post: *BGP: how networks tell each other what they can reach*.
 Each prefix sits on the router's loopback (`10.N.0.1/24`, `2001:db8:N::1/64`).
 Every pair of routers has two sessions, one over IPv4 and one over IPv6.
 
-| Link | Node | Interface | IPv4 address | IPv6 address |
-|------|------|-----------|--------------|--------------|
-| r1–r2 | r1 | eth1 | 10.0.12.1/24 | 2001:db8:12::1/64 |
-| r1–r2 | r2 | eth1 | 10.0.12.2/24 | 2001:db8:12::2/64 |
-| r2–r3 | r2 | eth2 | 10.0.23.1/24 | 2001:db8:23::1/64 |
-| r2–r3 | r3 | eth1 | 10.0.23.2/24 | 2001:db8:23::2/64 |
-| r3–r4 | r3 | eth2 | 10.0.34.1/24 | 2001:db8:34::1/64 |
-| r3–r4 | r4 | eth1 | 10.0.34.2/24 | 2001:db8:34::2/64 |
+| Node | Interface | IPv4 address | IPv6 address | Connected to |
+|------|-----------|--------------|--------------|--------------|
+| r1 | eth1 | 10.0.12.1/24 | 2001:db8:12::1/64 | r2 |
+| r2 | eth1 | 10.0.12.2/24 | 2001:db8:12::2/64 | r1 |
+| r2 | eth2 | 10.0.23.1/24 | 2001:db8:23::1/64 | r3 |
+| r3 | eth1 | 10.0.23.2/24 | 2001:db8:23::2/64 | r2 |
+| r3 | eth2 | 10.0.34.1/24 | 2001:db8:34::1/64 | r4 |
+| r4 | eth1 | 10.0.34.2/24 | 2001:db8:34::2/64 | r3 |
 
 ## Requirements
 
-- A Linux host (bare metal or VM)
-- [containerlab](https://containerlab.dev/install/) and a container runtime (Docker or podman)
-
-Tested on Debian 13 with containerlab 0.83.0, podman 5.4 and the
-`quay.io/frrouting/frr:10.7.1` image.
+- The shared lab environment listed in the [root README](../README.md#tested-with)
 
 ## Deploy
 
 ```bash
-sudo containerlab deploy -t topology.clab.yml
-# with podman:
 sudo containerlab --runtime podman deploy -t topology.clab.yml
 ```
 
@@ -61,8 +55,6 @@ sudo podman exec clab-bgp-r1 ping -6 -c 3 -I 2001:db8:1::1 2001:db8:4::1
 
 Expected: all four of r2's sessions `Established`, four prefixes per family on
 r4 (r1's with AS path `65002 65001`), and 3 ping replies per family.
-
-Replace `sudo podman` with `docker` if you use Docker.
 
 ## Try a session shutdown
 
@@ -88,5 +80,5 @@ removed.
 ## Teardown
 
 ```bash
-sudo containerlab destroy -t topology.clab.yml --cleanup
+sudo containerlab --runtime podman destroy -t topology.clab.yml --cleanup
 ```

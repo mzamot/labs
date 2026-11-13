@@ -1,0 +1,26 @@
+frr defaults traditional
+hostname node@N@-l2-vxlan
+!
+! One of the two EVPN route reflectors (node1 and node2). It accepts any VTEP in
+! 10.20.0.0/16 as a client, so a new VTEP needs no change here, and it peers with
+! the other reflector as an ordinary (non-client) neighbor.
+! The cluster IDs differ, so each reflector also accepts the routes the other one
+! reflects: its own VTEP keeps learning a client's routes even if that client's
+! session to this reflector is down.
+router bgp 65001
+ bgp router-id 10.20.@N@.6
+ bgp cluster-id 10.20.@N@.6
+ no bgp default ipv4-unicast
+ neighbor VTEPS peer-group
+ neighbor VTEPS remote-as 65001
+ bgp listen range 10.20.0.0/16 peer-group VTEPS
+ neighbor 10.20.@PEER@.6 remote-as 65001
+ neighbor 10.20.@PEER@.6 timers connect 5
+ !
+ address-family l2vpn evpn
+  neighbor VTEPS activate
+  neighbor VTEPS route-reflector-client
+  neighbor 10.20.@PEER@.6 activate
+  advertise-all-vni
+ exit-address-family
+exit

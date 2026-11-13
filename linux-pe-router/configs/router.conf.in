@@ -1,0 +1,109 @@
+frr defaults traditional
+hostname node@N@-pe-router
+!
+vrf infra
+ ip route 10.10.100.0/24 10.20.@N@.6
+exit-vrf
+!
+vrf external
+exit-vrf
+!
+interface eth1
+ ipv6 router isis FABRIC
+ isis network point-to-point
+exit
+!
+interface lo
+ ipv6 router isis FABRIC
+ isis passive
+exit
+!
+router isis FABRIC
+ is-type level-1
+ net 49.0001.0000.0000.000@N@.00
+ lsp-gen-interval 1
+ segment-routing srv6
+  locator MAIN
+ exit
+exit
+!
+! What each VRF may export to the other PEs
+ip prefix-list INFRA seq 10 permit 10.20.0.0/16 le 30
+ip prefix-list INFRA seq 20 permit 10.10.100.0/24
+ip prefix-list SERVICES seq 10 permit 10.250.0.0/16 le 24
+ip prefix-list EXTERNAL seq 10 permit 192.0.2.0/24 le 32
+!
+route-map SERVICES-ONLY permit 10
+ match ip address prefix-list SERVICES
+exit
+!
+route-map INFRA-EXPORT permit 10
+ match ip address prefix-list INFRA
+exit
+route-map INFRA-EXPORT permit 20
+ match ip address prefix-list SERVICES
+exit
+!
+route-map EXTERNAL-EXPORT permit 10
+ match ip address prefix-list EXTERNAL
+exit
+!
+router bgp 65000
+ bgp router-id @N@.@N@.@N@.@N@
+ no bgp default ipv4-unicast
+ neighbor fc00:0:100::1 remote-as 65000
+ neighbor fc00:0:100::1 update-source lo
+ neighbor fc00:0:100::1 capability extended-nexthop
+ neighbor fc00:0:100::1 timers connect 5
+ !
+ segment-routing srv6
+  locator MAIN
+ exit
+ !
+ address-family ipv4 vpn
+  neighbor fc00:0:100::1 activate
+ exit-address-family
+exit
+!
+router bgp 65000 vrf infra
+ bgp router-id @N@.@N@.@N@.@N@
+ sid vpn per-vrf export auto
+ !
+ address-family ipv4 unicast
+  redistribute connected
+  redistribute static
+  redistribute kernel route-map SERVICES-ONLY
+  rd vpn export @N@.@N@.@N@.@N@:10
+  rt vpn both 65000:10
+  route-map vpn export INFRA-EXPORT
+  export vpn
+  import vpn
+ exit-address-family
+exit
+!
+router bgp 65000 vrf external
+ bgp router-id @N@.@N@.@N@.@N@
+ sid vpn per-vrf export auto
+ !
+ address-family ipv4 unicast
+  redistribute connected
+  rd vpn export @N@.@N@.@N@.@N@:20
+  rt vpn both 65000:20
+  route-map vpn export EXTERNAL-EXPORT
+  export vpn
+  import vpn
+ exit-address-family
+exit
+!
+segment-routing
+ srv6
+  encapsulation
+   source-address fc00:0:@N@::1
+  locators
+   locator MAIN
+    prefix fc00:0:@N@::/48 block-len 32 node-len 16
+    behavior usid
+   exit
+  exit
+ exit
+exit

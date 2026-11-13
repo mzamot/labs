@@ -1,0 +1,83 @@
+name: evpn
+
+topology:
+  kinds:
+    linux:
+      sysctls:
+        net.ipv6.conf.all.disable_ipv6: 1
+        net.ipv6.conf.default.disable_ipv6: 1
+
+  nodes:
+    spine:
+      kind: linux
+      image: localhost/evpn-node:latest
+      exec:
+        - ip addr add 10.0.1.1/24 dev eth1
+        - ip addr add 10.0.2.1/24 dev eth2
+        - ip addr add 10.0.3.1/24 dev eth3
+
+    leaf1:
+      kind: linux
+      image: quay.io/frrouting/frr:10.7.1
+      binds:
+        - configs/leaf1/frr.conf:/etc/frr/frr.conf
+        - configs/daemons:/etc/frr/daemons
+        - configs/vtysh.conf:/etc/frr/vtysh.conf
+        - configs/leaf.sh:/leaf.sh
+      env:
+        VTEP_IP: 10.0.1.2
+        GATEWAY: 10.0.1.1
+      exec:
+        - sh /leaf.sh
+
+    leaf2:
+      kind: linux
+      image: quay.io/frrouting/frr:10.7.1
+      binds:
+        - configs/leaf2/frr.conf:/etc/frr/frr.conf
+        - configs/daemons:/etc/frr/daemons
+        - configs/vtysh.conf:/etc/frr/vtysh.conf
+        - configs/leaf.sh:/leaf.sh
+      env:
+        VTEP_IP: 10.0.2.2
+        GATEWAY: 10.0.2.1
+      exec:
+        - sh /leaf.sh
+
+    leaf3:
+      kind: linux
+      image: quay.io/frrouting/frr:10.7.1
+      binds:
+        - configs/leaf3/frr.conf:/etc/frr/frr.conf
+        - configs/daemons:/etc/frr/daemons
+        - configs/vtysh.conf:/etc/frr/vtysh.conf
+        - configs/leaf.sh:/leaf.sh
+      env:
+        VTEP_IP: 10.0.3.2
+        GATEWAY: 10.0.3.1
+      exec:
+        - sh /leaf.sh
+
+    h1:
+      kind: linux
+      image: localhost/evpn-node:latest
+      exec:
+        - ip addr add 192.168.100.1/24 dev eth1
+    h2:
+      kind: linux
+      image: localhost/evpn-node:latest
+      exec:
+        - ip addr add 192.168.100.2/24 dev eth1
+    h3:
+      kind: linux
+      image: localhost/evpn-node:latest
+      exec:
+        - ip addr add 192.168.100.3/24 dev eth1
+
+  links:
+    - endpoints: ["spine:eth1", "leaf1:eth1"]
+    - endpoints: ["spine:eth2", "leaf2:eth1"]
+    - endpoints: ["spine:eth3", "leaf3:eth1"]
+    - endpoints: ["leaf1:eth2", "h1:eth1"]
+    - endpoints: ["leaf2:eth2", "h2:eth1"]
+    - endpoints: ["leaf3:eth2", "h3:eth1"]
