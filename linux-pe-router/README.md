@@ -22,7 +22,7 @@ Every address comes from the server's number N (1 to 9):
 |-----------|-----------|---------|------|
 | default | ve-host-br | 10.10.100.1N/24 | The server's stack on the stretched LAN |
 | default | ve-host-infra | 10.20.N.2/30 | The server's routed link into `infra` |
-| l2-vxlan | vlan100 | 10.10.100.25N/24 | The gateway's own per-node interface on VLAN 100 |
+| l2-vxlan | vlan100 | 10.10.100.(1+N)/24, so .2 to .10 | The gateway's own per-node interface on VLAN 100 |
 | l2-vxlan | vlan100-gw | 10.10.100.1/24, MAC 02:00:00:00:01:00 | Anycast gateway, identical on every server |
 | l2-vxlan | ve-vtep-infra | 10.20.N.6/30 | The VTEP address |
 | workloads | ve-wl-infra | 10.20.N.10/30 | The workloads end of the routed handoff |
@@ -48,6 +48,7 @@ The EVPN sessions run through the `infra` VRF.
 |------|---------|
 | `topology.clab.yml` | The spine and four VMs |
 | `configs/pe.sh` | Turns a VM into PE number N: namespaces, links, sysctls, FRR containers |
+| `configs/addresses.sh` | Derives every per-node address from N; `check-addresses.sh` verifies them for N = 1 to 9 |
 | `configs/router.conf.in` | FRR template for the software PE (IS-IS, VPN, SRv6, export policy) |
 | `configs/l2-rr.conf.in` | FRR template for node1's and node2's VTEPs, the EVPN route reflectors |
 | `configs/l2.conf.in` | FRR template for every other VTEP, a client of both reflectors |

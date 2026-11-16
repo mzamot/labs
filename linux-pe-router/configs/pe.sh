@@ -2,22 +2,11 @@
 # Turns an AlmaLinux VM into a PE router.
 # Usage (as root, from the directory that holds this script): sh pe.sh N   (N is 1 to 9)
 set -e
-N=$1
-case "$N" in
-  [1-9]) ;;
-  *) echo "usage: sh pe.sh N   (N is 1 to 9)"; exit 1 ;;
-esac
-# Per-node addresses. Each node owns 10.20.N.0/24 in the infra VRF.
-HOST_L3=10.20.$N.2      # the host's routed link into infra
-PE_L3=10.20.$N.1        # the PE end of that link
-VTEP=10.20.$N.6         # the VTEP address
-VTEP_GW=10.20.$N.5      # the PE end of the VTEP's link
-MACHINE=10.10.100.1$N   # the host on the stretched LAN
-SVI=10.10.100.25$N      # this node's own address on the stretched LAN
-WL_PE=10.20.$N.9        # the PE end of the workloads handoff
-WL=10.20.$N.10          # the workloads end
-FRR=quay.io/frrouting/frr:10.7.1
 DIR=$(cd "$(dirname "$0")" && pwd)
+# Per-node addresses (see addresses.sh). Each node owns 10.20.N.0/24 in the infra VRF.
+. "$DIR/addresses.sh"
+node_addresses "$1" || { echo "usage: sh pe.sh N   (N is 1 to 9)"; exit 1; }
+FRR=quay.io/frrouting/frr:10.7.1
 
 # The strict VRF mode sysctl below only exists once the vrf module is loaded
 modprobe vrf
